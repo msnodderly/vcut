@@ -1,6 +1,6 @@
 # vcut
 
-Text-based video editor — edit video by editing a transcript.
+Text-based video editor — edit video by editing the transcript.
 
 ## Overview
 
