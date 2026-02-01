@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "vcut"
+version = "0.1.0"
+description = "Text-based video editor — edit video by editing a transcript"
+requires-python = ">=3.10"
+dependencies = [
+    "faster-whisper>=1.0.0",
+    "rich>=13.0.0",
+]
+
+[project.scripts]
+vcut = "vcut.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
