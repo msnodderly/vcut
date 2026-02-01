@@ -31,6 +31,12 @@ Delete lines to cut content. Reorder lines to rearrange. Comment with `#` to exc
 pip install -e .
 ```
 
+### Whisper Models
+
+The `faster-whisper` package installs via pip automatically. On first run, the selected Whisper model downloads (~150MB-1.5GB) and caches to `~/.cache/huggingface/`.
+
+GPU acceleration is optional—CPU transcription works fine. For GPU support, see [CTranslate2 installation](https://github.com/OpenNMT/CTranslate2#installation).
+
 ## Usage
 
 ### `vcut transcribe` — Generate transcript
