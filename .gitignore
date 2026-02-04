@@ -1,0 +1,67 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+env/
+ENV/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# vcut specific
+test-media/           # Working directory for test videos
+*.mp4                 # Exclude all videos by default
+*.webm
+*.mkv
+*.m4a
+*.avi
+*.mov
+*_edited.*            # Exclude edited outputs
+
+# Except small test fixtures
+!tests/fixtures/videos/*.mp4
+!examples/*/*.mp4
+
+# Temporary files
+/tmp/
+temp/
+*.tmp
+
+# Transcripts (except fixtures)
+/*.txt
+!tests/fixtures/transcripts/*.txt
+!examples/*/*.txt

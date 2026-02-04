@@ -1,0 +1,4 @@
+[00:00:00.000 - 00:00:02.500] | Hello, this is a test transcript.
+[00:00:02.500 - 00:00:05.000] | It has multiple segments.
+[00:00:05.000 - 00:00:07.500] | Each segment has timestamps.
+[00:00:07.500 - 00:00:10.000] | This is the final segment.
