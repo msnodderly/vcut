@@ -43,7 +43,7 @@ def merge_words_into_chunks(segments: list, chunk_size: float) -> list[dict]:
             results.append({
                 "start": chunk_start,
                 "end": w["end"],
-                "text": "".join(chunk_words).strip(),
+                "text": " ".join(w.strip() for w in chunk_words),
             })
             chunk_words = []
             chunk_start = None
@@ -52,7 +52,7 @@ def merge_words_into_chunks(segments: list, chunk_size: float) -> list[dict]:
         results.append({
             "start": chunk_start,
             "end": words[-1]["end"],
-            "text": "".join(chunk_words).strip(),
+            "text": " ".join(w.strip() for w in chunk_words),
         })
 
     return results
@@ -99,10 +99,13 @@ def transcribe(
 
 
 def format_timestamp(seconds: float) -> str:
-    h = int(seconds // 3600)
-    m = int((seconds % 3600) // 60)
-    s = int(seconds % 60)
-    ms = int(round((seconds - int(seconds)) * 1000))
+    total_ms = round(seconds * 1000)
+    h = total_ms // 3_600_000
+    total_ms %= 3_600_000
+    m = total_ms // 60_000
+    total_ms %= 60_000
+    s = total_ms // 1000
+    ms = total_ms % 1000
     return f"{h:02d}:{m:02d}:{s:02d}.{ms:03d}"
 
 

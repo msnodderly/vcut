@@ -25,11 +25,4 @@ def sample_transcript(fixtures_dir):
     return fixtures_dir / "transcripts" / "basic.txt"
 
 
-def pytest_configure(config):
-    """Configure custom markers."""
-    config.addinivalue_line(
-        "markers", "slow: marks tests as slow (deselect with '-m \"not slow\"')"
-    )
-    config.addinivalue_line(
-        "markers", "integration: marks tests as integration tests"
-    )
+

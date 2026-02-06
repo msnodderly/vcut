@@ -90,14 +90,20 @@ def cmd_render(args):
             console.print(f"[dim]Run first: vcut transcribe {args.input}[/]")
         sys.exit(1)
 
-    output_path = Path(args.output) if args.output else input_path.with_name(f"{input_path.stem}_edited.mp4")
+    output_path = Path(args.output) if args.output else input_path.with_name(f"{input_path.stem}_edited{input_path.suffix}")
 
     if output_path.is_file() and not args.force:
         if not console.input(f"[bold yellow]Output already exists:[/] {output_path}\nOverwrite? [y/N] ").strip().lower().startswith("y"):
             console.print("Aborted.")
             sys.exit(1)
 
-    segments = parse_edited_file(transcript_src)
+    try:
+        segments = parse_edited_file(transcript_src)
+    except ValueError as e:
+        console.print(f"[bold red]Error:[/] {e}")
+        console.print("\n[dim]Please fix the transcript file and try again.[/]")
+        sys.exit(1)
+
     if not segments:
         console.print("[yellow]No segments in transcript. Nothing to render.[/]")
         sys.exit(0)
@@ -144,12 +150,19 @@ def cmd_edit(args):
             console.print(f"[bold red]Editor exited with code {rc}. Aborting.[/]")
             sys.exit(1)
 
-        segments = parse_edited_file(working_copy)
+        try:
+            segments = parse_edited_file(working_copy)
+        except ValueError as e:
+            console.print(f"[bold red]Error:[/] {e}")
+            console.print(f"\n[dim]The edited file is preserved at: {working_copy}[/]")
+            console.print(f"[dim]Please fix the issues and copy it back to: {transcript_src}[/]")
+            sys.exit(1)
+
         if not segments:
             console.print("[yellow]No segments remaining after edit. Nothing to render.[/]")
             sys.exit(0)
 
-        output_path = Path(args.output) if args.output else input_path.with_name(f"{input_path.stem}_edited.mp4")
+        output_path = Path(args.output) if args.output else input_path.with_name(f"{input_path.stem}_edited{input_path.suffix}")
 
         if output_path.is_file() and not args.force:
             if not console.input(f"[bold yellow]Output already exists:[/] {output_path}\nOverwrite? [y/N] ").strip().lower().startswith("y"):
