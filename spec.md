@@ -1,7 +1,7 @@
 # Specification: vcut (CLI Video Editor)
 
 ## 1. Project Overview
-`vcut` is a minimalist CLI tool that allows users to edit video files by manipulating a generated text transcript. It follows the Unix philosophy: "Text is the universal interface." By editing the transcript in a system editor like Vim, users can cut, reorder, and sequence video segments with standard text-editing commands.
+`vcut` is a minimalist CLI tool that allows users to edit video files by manipulating a generated text transcript. It follows the Unix philosophy: "Text is the universal interface." By editing the transcript in a system editor like Vim, users can cut and sequence video segments with standard text-editing commands.
 
 ## 2. Technical Stack
 - **Transcription:** `faster-whisper` (default model: `distil-large-v3`, configurable via `--model`).
@@ -19,7 +19,7 @@ Three explicit subcommands for a phased workflow:
 vcut transcribe video.mp4                   # → video.txt
 
 # Phase 2: User edits the transcript manually
-vim video.txt                                   # delete, reorder, comment out lines
+vim video.txt                                   # delete lines, comment out lines
 
 # Phase 3: Render edited video
 vcut render video.mp4                        # reads video.txt → video_edited.mp4
@@ -77,7 +77,6 @@ Convenience: open transcript in `$EDITOR`, then render on save. Requires transcr
 ### Phase 2: Manual Edit (user's responsibility)
 - User opens the `.txt` file in any editor they prefer.
 - Delete lines to cut content.
-- Reorder lines to rearrange sequences.
 - Comment lines with `#` to exclude them.
 - Blank lines are ignored.
 - User can re-edit and re-render as many times as they want.
@@ -85,7 +84,7 @@ Convenience: open transcript in `$EDITOR`, then render on save. Requires transcr
 ### Phase 3: Render (`vcut render`)
 - Parse the transcript file via regex to extract timestamps.
 - Lines starting with `#` and blank lines are ignored.
-- The final video follows the exact line order in the file.
+- Segments are rendered in their original chronological order.
 - **Stream copy mode** (default): Use `-ss` before `-i` with `-c copy` for fast keyframe-based extraction, then concat demuxer. Near-instant but cuts on keyframes.
 - **Re-encode mode** (`--reencode`): Decode and re-encode each segment for frame-perfect cuts, then concat.
 

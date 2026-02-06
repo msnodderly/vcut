@@ -12,7 +12,7 @@ vim video.txt                       # Step 2: Edit the transcript
 vcut render video.mp4           # Step 3: Render video_edited.mp4
 ```
 
-Delete lines to cut content. Reorder lines to rearrange. Comment with `#` to exclude.
+Delete lines to cut content. Comment with `#` to exclude.
 
 ## Installation
 
@@ -96,11 +96,10 @@ Edit it:
 [00:00:00.000 -> 00:00:03.200] | Welcome to this tutorial.
 # [00:00:03.200 -> 00:00:06.500] | First, we'll discuss the basics.
 [00:00:09.800 -> 00:00:12.100] | Now for the interesting stuff.
-[00:00:06.500 -> 00:00:09.800] | This part is boring filler content.
 ```
 
 - Commented line (`#`) is excluded
-- Last two lines are swapped — video follows the new order
+- Deleted line is removed from the output
 
 ## Stream Copy vs Re-encode
 
