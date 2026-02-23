@@ -12,7 +12,7 @@ vim video.txt                       # Step 2: Edit the transcript
 vcut render video.mp4           # Step 3: Render video_edited.mp4
 ```
 
-Delete lines to cut content. Comment with `#` to exclude.
+Delete or comment lines with `#` to cut content. 
 
 ## Installation
 
