@@ -28,6 +28,8 @@ Delete or comment lines with `#` to cut content.
 ### Install
 
 ```bash
+python3 -m venv .venv
+source .venv/bin/activate   # macOS/Linux
 pip install -e .
 ```
 
