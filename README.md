@@ -143,7 +143,7 @@ Or use sed/awk for pattern-based editing:
 grep -E "(data|analysis)" video.txt > technical-terms.txt
 vcut render video.mp4 -t technical-terms.txt -o technical-supercut.mp4
 
-# Remove all lines with filler words
+# Remove all lines with filler words (only works if they're included in the transcript)
 sed '/\b(um|uh|like|you know)\b/d' video.txt > clean.txt
 vcut render video.mp4 -t clean.txt -o clean-version.mp4
 ```
