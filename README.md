@@ -1,6 +1,6 @@
 # vcut
 
-Text-based video editor — edit video by editing a transcript. This is a sort of trivial, mostly vibe-coded project. I made it for clipping out just the interesting sections of podcasts, long screen shares, etc. -Matt
+Text-based video editor: Edit video by editing a transcript. This is a sort of trivial, mostly vibe-coded project. I made it for clipping out just the interesting sections of podcasts, long screen shares, etc. -Matt
 
 ## Overview
 
