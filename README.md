@@ -96,8 +96,7 @@ Edit it:
 [00:00:09.800 -> 00:00:12.100] | Now for the interesting stuff.
 ```
 
-- Commented line (`#`) is excluded
-- Deleted line is removed from the output
+- Commented line (`#`) or deleted lines are removed from the output
 
 ## Stream Copy vs Re-encode
 
