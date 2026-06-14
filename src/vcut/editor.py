@@ -1,5 +1,6 @@
 import os
 import re
+import shlex
 import subprocess
 from pathlib import Path
 
@@ -14,7 +15,8 @@ def get_editor() -> str:
 
 def open_editor(filepath: Path) -> int:
     editor = get_editor()
-    result = subprocess.run([editor, str(filepath)])
+    # shlex.split so editors configured with flags work, e.g. "code -w".
+    result = subprocess.run([*shlex.split(editor), str(filepath)])
     return result.returncode
 
 

@@ -1,20 +1,17 @@
-import subprocess
 from pathlib import Path
 
 from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TimeElapsedColumn
 
+from vcut.ffmpeg import run_ffmpeg
+
 
 def extract_audio(video_path: Path, tmp_dir: Path) -> Path:
     audio_path = tmp_dir / "audio.wav"
-    subprocess.run(
-        [
-            "ffmpeg", "-y", "-i", str(video_path),
-            "-vn", "-acodec", "pcm_s16le", "-ar", "16000", "-ac", "1",
-            str(audio_path),
-        ],
-        capture_output=True,
-        check=True,
-    )
+    run_ffmpeg([
+        "-i", str(video_path),
+        "-vn", "-acodec", "pcm_s16le", "-ar", "16000", "-ac", "1",
+        str(audio_path),
+    ])
     return audio_path
 
 
@@ -43,7 +40,7 @@ def merge_words_into_chunks(segments: list, chunk_size: float) -> list[dict]:
             results.append({
                 "start": chunk_start,
                 "end": w["end"],
-                "text": " ".join(w.strip() for w in chunk_words),
+                "text": " ".join(word.strip() for word in chunk_words),
             })
             chunk_words = []
             chunk_start = None
@@ -52,7 +49,7 @@ def merge_words_into_chunks(segments: list, chunk_size: float) -> list[dict]:
         results.append({
             "start": chunk_start,
             "end": words[-1]["end"],
-            "text": " ".join(w.strip() for w in chunk_words),
+            "text": " ".join(word.strip() for word in chunk_words),
         })
 
     return results

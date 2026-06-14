@@ -1,10 +1,8 @@
-import subprocess
 from pathlib import Path
 
-from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, MofNCompleteColumn
 
-console = Console()
+from vcut.ffmpeg import run_ffmpeg
 
 
 def render(
@@ -27,33 +25,23 @@ def render(
             seg_path = tmp_dir / f"seg_{i:04d}.mp4"
             if reencode:
                 # -ss after -i for precise decode, then re-encode
-                subprocess.run(
-                    [
-                        "ffmpeg", "-y",
-                        "-i", str(input_video),
-                        "-ss", str(start),
-                        "-to", str(end),
-                        "-avoid_negative_ts", "make_zero",
-                        str(seg_path),
-                    ],
-                    capture_output=True,
-                    check=True,
-                )
+                run_ffmpeg([
+                    "-i", str(input_video),
+                    "-ss", str(start),
+                    "-to", str(end),
+                    "-avoid_negative_ts", "make_zero",
+                    str(seg_path),
+                ])
             else:
                 # -ss before -i for fast keyframe seek, -c copy
-                subprocess.run(
-                    [
-                        "ffmpeg", "-y",
-                        "-ss", str(start),
-                        "-i", str(input_video),
-                        "-t", str(end - start),
-                        "-c", "copy",
-                        "-avoid_negative_ts", "make_zero",
-                        str(seg_path),
-                    ],
-                    capture_output=True,
-                    check=True,
-                )
+                run_ffmpeg([
+                    "-ss", str(start),
+                    "-i", str(input_video),
+                    "-t", str(end - start),
+                    "-c", "copy",
+                    "-avoid_negative_ts", "make_zero",
+                    str(seg_path),
+                ])
             seg_files.append(seg_path)
             progress.update(task, advance=1)
 
@@ -63,14 +51,9 @@ def render(
         "\n".join(f"file '{f}'" for f in seg_files) + "\n"
     )
 
-    subprocess.run(
-        [
-            "ffmpeg", "-y",
-            "-f", "concat", "-safe", "0",
-            "-i", str(concat_list),
-            "-c", "copy",
-            str(output_path),
-        ],
-        capture_output=True,
-        check=True,
-    )
+    run_ffmpeg([
+        "-f", "concat", "-safe", "0",
+        "-i", str(concat_list),
+        "-c", "copy",
+        str(output_path),
+    ])
