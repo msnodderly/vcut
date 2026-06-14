@@ -42,6 +42,26 @@ Delete or comment lines with `#` to cut content.
 
 ### Install
 
+The easiest way is with [uv](https://docs.astral.sh/uv/). Pick one:
+
+**Install as a global tool (recommended)** — puts a `vcut` command on your `$PATH` so you can run it from any folder:
+
+```bash
+uv tool install /path/to/vcut          # local checkout
+uv tool install git+https://github.com/<you>/vcut   # or straight from git
+```
+
+Then `vcut --help` works anywhere. Use `--editable` to track changes to your source, and `uv tool uninstall vcut` to remove it.
+
+**Run once without installing** — `uvx` builds a throwaway environment and runs the command:
+
+```bash
+uvx --from /path/to/vcut vcut --help   # local checkout
+uvx --from git+https://github.com/<you>/vcut vcut --help
+```
+
+**From source (for development)**:
+
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate   # macOS/Linux
