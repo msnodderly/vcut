@@ -39,6 +39,61 @@ The `faster-whisper` package installs via pip automatically. On first run, the s
 
 ## Usage
 
+### Agent workflow: choose the right transcript edit
+
+`vcut --help` is intended to be useful as an ad-hoc agent instruction document.
+When an agent is asked to use `vcut`, start there and then choose the edit
+pattern that matches the user's request.
+
+```bash
+# 1. Read the tool instructions.
+vcut --help
+
+# 2. Transcribe to a scratch file with short chunks for searchable boundaries.
+vcut transcribe "input.mp4" -o /tmp/input.vcut.txt -m balanced -l en -c 2 --force
+
+# 3. Search for the requested phrase, likely transcript variants, and nearby terms.
+rg -n -i 'requested phrase|alternate spelling|related term' /tmp/input.vcut.txt
+sed -n 'START,ENDp' /tmp/input.vcut.txt
+```
+
+For a contiguous snippet, such as "the section where they discuss X", create one
+synthetic transcript line spanning the selected start/end time. Do not render
+every transcript line separately unless the user wants jump cuts.
+
+```bash
+printf '%s\n' '[00:32:18.400 -> 00:37:42.840] | requested section' > /tmp/clip.vcut.txt
+vcut render "input.mp4" -t /tmp/clip.vcut.txt -o "requested-section.mp4" --reencode --force
+ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 "requested-section.mp4"
+```
+
+For a supercut, such as "every time they say X", keep multiple matching
+transcript lines and render those lines as separate clips.
+
+```bash
+rg -i 'amazing|incredible' /tmp/input.vcut.txt > /tmp/supercut.vcut.txt
+vcut render "input.mp4" -t /tmp/supercut.vcut.txt -o "supercut.mp4" --reencode --force
+```
+
+For cleanup/removal edits, copy the full transcript, delete or `#` comment the
+lines to remove, then render the edited transcript. This preserves everything
+else.
+
+```bash
+cp /tmp/input.vcut.txt /tmp/clean.vcut.txt
+# edit /tmp/clean.vcut.txt, or generate it with rg/sed/awk
+vcut render "input.mp4" -t /tmp/clean.vcut.txt -o "clean.mp4" --reencode --force
+```
+
+Notes for agents:
+
+- Use `/tmp` for scratch transcripts.
+- Write the final output somewhere writable; if the source video is outside the
+  workspace, do not assume its directory is writable.
+- If the exact requested phrase is not found, search plausible transcription
+  variants and tell the user what term was actually found.
+- Use `--reencode` for user-visible snippets that need accurate boundaries.
+
 ### `vcut transcribe` — Generate transcript
 
 ```bash

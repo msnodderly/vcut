@@ -2,6 +2,7 @@ import argparse
 import shutil
 import sys
 import tempfile
+import textwrap
 from pathlib import Path
 
 from rich.console import Console
@@ -62,6 +63,78 @@ MODEL_PRESETS = {
     "balanced": "base.en",
     "quality": "distil-large-v3",
 }
+
+
+AGENT_HELP = """\
+Agent guide:
+
+  vcut edits video by editing timestamped transcript lines. The render command
+  keeps every uncommented transcript line and removes deleted or # commented
+  lines. Each line has this format:
+
+       [HH:MM:SS.mmm -> HH:MM:SS.mmm] | spoken text
+
+  Start every unfamiliar vcut task by reading this help:
+       vcut --help
+
+Agent investigation workflow:
+
+  1. Transcribe to a scratch file. Use smaller chunks when you need searchable
+     boundaries around phrases, topics, or repeated words:
+       vcut transcribe "input.mp4" -o /tmp/input.vcut.txt -m balanced -l en -c 2 --force
+
+     If the model is not cached, this may download a faster-whisper model.
+     The "balanced" preset is usually enough for locating a clip; use "quality"
+     for a more accurate transcript when time is less important.
+
+  2. Search the transcript for requested text, likely transcription variants,
+     and nearby wording:
+       rg -n -i 'phrase|alternate spelling|related term' /tmp/input.vcut.txt
+       sed -n 'START,ENDp' /tmp/input.vcut.txt
+
+  3. Choose the editing pattern that matches the request:
+
+     Contiguous clip:
+       Use this for "create a snippet of the section where..." or any request
+       for one continuous excerpt. Create one synthetic transcript line spanning
+       the chosen start/end timestamps:
+         printf '%s\\n' '[00:32:18.400 -> 00:37:42.840] | requested section' > /tmp/clip.vcut.txt
+         vcut render "input.mp4" -t /tmp/clip.vcut.txt -o "requested-section.mp4" --reencode --force
+
+     Supercut:
+       Use this for "every time they say..." or other jump-cut compilations.
+       Keep multiple matching transcript lines:
+         rg -i 'amazing|incredible' /tmp/input.vcut.txt > /tmp/supercut.vcut.txt
+         vcut render "input.mp4" -t /tmp/supercut.vcut.txt -o "supercut.mp4" --reencode --force
+
+     Remove or clean up parts:
+       Copy the full transcript, then delete or # comment lines to remove.
+       This preserves the rest of the video:
+         cp /tmp/input.vcut.txt /tmp/clean.vcut.txt
+         # edit /tmp/clean.vcut.txt, or generate it with rg/sed/awk
+         vcut render "input.mp4" -t /tmp/clean.vcut.txt -o "clean.mp4" --reencode --force
+
+     Manual edit:
+       If the user wants to hand-edit, transcribe next to the video or pass
+       --transcript, then run:
+         vcut edit "input.mp4" --reencode
+
+     Use --reencode for accurate user-visible outputs. Omit it only when speed is
+     more important than precise boundaries.
+
+  4. Verify the output:
+       ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 "output.mp4"
+
+Important constraints:
+  - vcut writes the output path you pass to -o. If the source video is outside
+    the writable workspace, write the snippet inside the current project or /tmp.
+  - If the user asks for a concept name that is not found, search likely
+    transcription variants and report the term actually found.
+  - Do not render every transcript line separately for one continuous section;
+    that is slower and creates jump cuts. Use one synthetic transcript line.
+  - If you created a user-visible output that needs manual testing, include a
+    basic smoke test with the current branch/worktree in your final response.
+"""
 
 
 def cmd_transcribe(args):
@@ -186,10 +259,12 @@ def cmd_edit(args):
     shutil.rmtree(tmp_dir, ignore_errors=True)
 
 
-def main():
+def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="vcut",
         description="Edit video by editing its transcript.",
+        epilog=textwrap.dedent(AGENT_HELP),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     sub = parser.add_subparsers(dest="command")
 
@@ -229,6 +304,11 @@ def main():
     p_edit.add_argument("--force", action="store_true", help="Overwrite output without prompting")
     p_edit.set_defaults(func=cmd_edit)
 
+    return parser
+
+
+def main():
+    parser = build_parser()
     args = parser.parse_args()
 
     if not getattr(args, "func", None):
