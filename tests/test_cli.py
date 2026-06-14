@@ -1,5 +1,7 @@
 from pathlib import Path
 
+import pytest
+
 from vcut.cli import transcript_path_for, MODEL_PRESETS, build_parser
 
 
@@ -36,3 +38,20 @@ class TestHelpText:
         assert "Remove or clean up parts" in help_text
         assert "ffprobe" in help_text
         assert "vcut render \"input.mp4\"" in help_text
+
+    @pytest.mark.parametrize(
+        ("command", "expected"),
+        [
+            ("transcribe", ["Purpose:", "Model presets:", "vcut transcribe \"input.mp4\""]),
+            ("render", ["Purpose:", "Editing patterns:", "Contiguous clip:", "Supercut:"]),
+            ("edit", ["Purpose:", "EDITOR=vim", "Prefer non-interactive"]),
+        ],
+    )
+    def test_subcommand_help_includes_examples_and_notes(self, capsys, command, expected):
+        with pytest.raises(SystemExit) as exc_info:
+            build_parser().parse_args([command, "--help"])
+
+        assert exc_info.value.code == 0
+        help_text = capsys.readouterr().out
+        for text in expected:
+            assert text in help_text

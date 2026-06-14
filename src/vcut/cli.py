@@ -77,6 +77,11 @@ Agent guide:
   Start every unfamiliar vcut task by reading this help:
        vcut --help
 
+  For complete command-line options and examples for a specific step:
+       vcut transcribe --help
+       vcut render --help
+       vcut edit --help
+
 Agent investigation workflow:
 
   1. Transcribe to a scratch file. Use smaller chunks when you need searchable
@@ -134,6 +139,84 @@ Important constraints:
     that is slower and creates jump cuts. Use one synthetic transcript line.
   - If you created a user-visible output that needs manual testing, include a
     basic smoke test with the current branch/worktree in your final response.
+"""
+
+
+TRANSCRIBE_HELP = """\
+Purpose:
+  Generate a timestamped transcript file from a video. The transcript is the
+  editable source of truth used by vcut render and vcut edit.
+
+Output:
+  By default, vcut writes input.txt next to input.mp4. Prefer -o /tmp/name.txt
+  for agent scratch work so source directories are not modified.
+
+Examples:
+  vcut transcribe "input.mp4"
+  vcut transcribe "input.mp4" -o /tmp/input.vcut.txt -m balanced -l en -c 2 --force
+  vcut transcribe "input.mp4" -m
+
+Model presets:
+  fast      tiny.en          fastest, rough transcript
+  balanced  base.en          good for locating clips
+  quality   distil-large-v3  default, better transcript
+
+Agent notes:
+  - Use -c 2 or another small chunk size when searching for precise boundaries.
+  - Use -l en when the video is English and you want to avoid language detection.
+  - First use of a model may download files through faster-whisper.
+"""
+
+
+RENDER_HELP = """\
+Purpose:
+  Render a video from an edited transcript. Every uncommented transcript line is
+  kept. Deleted lines or lines beginning with # are removed.
+
+Transcript format:
+  [HH:MM:SS.mmm -> HH:MM:SS.mmm] | spoken text
+
+Examples:
+  vcut render "input.mp4"
+  vcut render "input.mp4" -t /tmp/clip.vcut.txt -o "clip.mp4" --reencode --force
+
+Editing patterns:
+  Contiguous clip:
+    Create one synthetic line covering the desired start/end time:
+      printf '%s\\n' '[00:01:00.000 -> 00:02:30.000] | requested section' > /tmp/clip.vcut.txt
+      vcut render "input.mp4" -t /tmp/clip.vcut.txt -o "clip.mp4" --reencode --force
+
+  Supercut:
+    Keep multiple matching transcript lines:
+      rg -i 'keyword|phrase' /tmp/input.vcut.txt > /tmp/supercut.vcut.txt
+      vcut render "input.mp4" -t /tmp/supercut.vcut.txt -o "supercut.mp4" --reencode --force
+
+  Remove sections:
+    Copy the full transcript, then delete or # comment lines to cut:
+      cp /tmp/input.vcut.txt /tmp/clean.vcut.txt
+      vcut render "input.mp4" -t /tmp/clean.vcut.txt -o "clean.mp4" --reencode --force
+
+Agent notes:
+  - Use --reencode for accurate boundaries; stream copy is faster but less exact.
+  - Write -o to a writable directory. Source video directories may be read-only.
+  - Verify output duration with ffprobe after rendering.
+"""
+
+
+EDIT_HELP = """\
+Purpose:
+  Copy the transcript to a temporary working file, open it in $EDITOR, then
+  render after the editor exits. Use this for human/manual transcript edits.
+
+Examples:
+  EDITOR=vim vcut edit "input.mp4"
+  EDITOR=code vcut edit "input.mp4" -t /tmp/input.vcut.txt -o "edited.mp4" --reencode
+
+Agent notes:
+  - Prefer non-interactive transcript generation plus vcut render for automated
+    work. Use vcut edit only when the user explicitly wants manual editing.
+  - A transcript must already exist; run vcut transcribe first.
+  - If parsing fails, vcut prints the preserved temporary edited file path.
 """
 
 
@@ -269,7 +352,13 @@ def build_parser() -> argparse.ArgumentParser:
     sub = parser.add_subparsers(dest="command")
 
     # -- transcribe --
-    p_transcribe = sub.add_parser("transcribe", aliases=["t"], help="Generate transcript from video")
+    p_transcribe = sub.add_parser(
+        "transcribe",
+        aliases=["t"],
+        help="Generate transcript from video",
+        epilog=textwrap.dedent(TRANSCRIBE_HELP),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
     p_transcribe.add_argument("input", help="Input video file")
     p_transcribe.add_argument("-o", "--output", help="Output transcript path (default: {input}.txt)")
     p_transcribe.add_argument(
@@ -287,7 +376,13 @@ def build_parser() -> argparse.ArgumentParser:
     p_transcribe.set_defaults(func=cmd_transcribe)
 
     # -- render --
-    p_render = sub.add_parser("render", aliases=["r"], help="Render video from edited transcript")
+    p_render = sub.add_parser(
+        "render",
+        aliases=["r"],
+        help="Render video from edited transcript",
+        epilog=textwrap.dedent(RENDER_HELP),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
     p_render.add_argument("input", help="Input video file")
     p_render.add_argument("-t", "--transcript", help="Transcript file (default: {input}.txt)")
     p_render.add_argument("-o", "--output", help="Output video path (default: {input}_edited.mp4)")
@@ -296,7 +391,13 @@ def build_parser() -> argparse.ArgumentParser:
     p_render.set_defaults(func=cmd_render)
 
     # -- edit --
-    p_edit = sub.add_parser("edit", aliases=["e"], help="Open transcript in $EDITOR, then render (convenience)")
+    p_edit = sub.add_parser(
+        "edit",
+        aliases=["e"],
+        help="Open transcript in $EDITOR, then render (convenience)",
+        epilog=textwrap.dedent(EDIT_HELP),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
     p_edit.add_argument("input", help="Input video file")
     p_edit.add_argument("-t", "--transcript", help="Transcript file (default: {input}.txt)")
     p_edit.add_argument("-o", "--output", help="Output video path (default: {input}_edited.mp4)")
