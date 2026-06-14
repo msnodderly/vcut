@@ -1,6 +1,6 @@
 # vcut
 
-`vcut` is a text-based video editor: Edit video by editing a transcript. This is a sort of trivial, mostly vibe-coded project. It is essentially a thin wrapper around ffmpeg and whisper-fast. I made yhis for clipping out just the interesting sections of podcasts, long screen shares, etc. -Matt
+`vcut` is a text-based video editor: Edit video by editing a transcript. This is a sort of trivial, mostly vibe-coded project. It is essentially a thin wrapper around ffmpeg and fastet-whisper. I made yhis for clipping out just the interesting sections of podcasts, long screen shares, etc. -Matt
 
 ## Overview
 
