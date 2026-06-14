@@ -38,8 +38,9 @@ Generate a transcript from a video file.
 | Flag | Short | Default | Description |
 |------|-------|---------|-------------|
 | `--output` | `-o` | `{input}.txt` | Output transcript path |
-| `--model` | `-m` | `distil-large-v3` | Whisper model name |
+| `--model` | `-m` | `distil-large-v3` | Whisper model preset (`fast`/`balanced`/`quality`) or name. Pass `-m` alone to list presets |
 | `--language` | `-l` | auto-detect | Force transcription language |
+| `--chunk-size` | `-c` | `3` | Target segment duration in seconds |
 | `--force` | | `false` | Overwrite existing transcript |
 
 #### `vcut render <input>`
@@ -50,6 +51,7 @@ Render video from an edited transcript.
 | `--transcript` | `-t` | `{input}.txt` | Transcript file to use |
 | `--output` | `-o` | `{input}_edited.mp4` | Output video path |
 | `--reencode` | `-r` | `false` | Re-encode for frame-perfect cuts |
+| `--force` | | `false` | Overwrite output without prompting |
 
 #### `vcut edit <input>`
 Convenience: open transcript in `$EDITOR`, then render on save. Requires transcript to already exist.
@@ -59,6 +61,7 @@ Convenience: open transcript in `$EDITOR`, then render on save. Requires transcr
 | `--transcript` | `-t` | `{input}.txt` | Transcript file to edit |
 | `--output` | `-o` | `{input}_edited.mp4` | Output video path |
 | `--reencode` | `-r` | `false` | Re-encode for frame-perfect cuts |
+| `--force` | | `false` | Overwrite output without prompting |
 
 ## 4. Workflow
 
@@ -114,6 +117,7 @@ vcut/
 │       ├── cli.py          # subcommand parsing, main entry point
 │       ├── transcribe.py   # audio extraction + whisper
 │       ├── editor.py       # editor launch + transcript parsing
+│       ├── ffmpeg.py       # ffmpeg command helpers
 │       └── render.py       # ffmpeg segment extraction + concat
 ├── spec.md
 └── README.md

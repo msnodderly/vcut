@@ -1,6 +1,6 @@
 # vcut
 
-`vcut` is a text-based video editor: Edit video by editing a transcript. This is a sort of trivial, mostly vibe-coded project. It is essentially a thin wrapper around ffmpeg and fastet-whisper. I made this for clipping out just the interesting sections of podcasts, long screen shares, etc. 
+`vcut` is a text-based video editor: Edit video by editing a transcript. This is a sort of trivial, mostly vibe-coded project. It is essentially a thin wrapper around ffmpeg and faster-whisper. I made this for clipping out just the interesting sections of podcasts, long screen shares, etc. 
 
 `vcut` is designed to work well as a tool for AI agents. Here is an example with Claude Code: 
 ```
@@ -11,7 +11,7 @@
   through his wrap-up closing the idea.
 ✻ Sautéed for 5m 46s
 ```
-(full output in [[examples/clip-a-segment.md](examples/clip-a-segment.md)])
+(full output in [examples/clip-a-segment.md](examples/clip-a-segment.md))
 
 Have fun!
 
@@ -94,9 +94,12 @@ vcut transcribe video.mp4 --force        # overwrite existing
 | Flag | Short | Default | Description |
 |------|-------|---------|-------------|
 | `--output` | `-o` | `{input}.txt` | Output transcript path |
-| `--model` | `-m` | `distil-large-v3` | Whisper model |
+| `--model` | `-m` | `distil-large-v3` | Whisper model preset or name (see below). Pass `-m` alone to list presets |
 | `--language` | `-l` | auto-detect | Force language |
+| `--chunk-size` | `-c` | `3` | Target segment duration in seconds; smaller = finer boundaries |
 | `--force` | | `false` | Overwrite existing transcript |
+
+Model presets: `fast` (tiny.en), `balanced` (base.en), `quality` (distil-large-v3, the default). Any `faster-whisper` model name (e.g. `large-v3`, `small.en`) is also accepted.
 
 ### `vcut render` — Render from edited transcript
 
@@ -112,6 +115,7 @@ vcut render video.mp4 --reencode          # frame-perfect cuts
 | `--transcript` | `-t` | `{input}.txt` | Transcript file |
 | `--output` | `-o` | `{input}_edited.mp4` | Output video path |
 | `--reencode` | `-r` | `false` | Re-encode for precise cuts |
+| `--force` | | `false` | Overwrite output without prompting |
 
 ### `vcut edit` — Convenience: edit + render
 
