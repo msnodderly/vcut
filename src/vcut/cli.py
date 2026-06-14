@@ -73,8 +73,6 @@ def cmd_transcribe(args):
         console.print("\nAny faster-whisper model name is also accepted (e.g. large-v3, small.en).")
         sys.exit(0)
     args.model = MODEL_PRESETS.get(args.model, args.model)
-    if args.chunk_size is None:
-        args.chunk_size = 3.0
     input_path = Path(args.input)
     if not input_path.is_file():
         console.print(f"[bold red]Error:[/] File not found: {input_path}")
@@ -209,7 +207,7 @@ def main():
              "Pass -m alone to list presets.",
     )
     p_transcribe.add_argument("-l", "--language", default=None, help="Force transcription language")
-    p_transcribe.add_argument("-c", "--chunk-size", type=float, default=None, help="Target segment duration in seconds (default: 3)")
+    p_transcribe.add_argument("-c", "--chunk-size", type=float, default=3.0, help="Target segment duration in seconds (default: 3)")
     p_transcribe.add_argument("--force", action="store_true", help="Overwrite existing transcript")
     p_transcribe.set_defaults(func=cmd_transcribe)
 

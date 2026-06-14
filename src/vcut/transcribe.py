@@ -59,17 +59,15 @@ def transcribe(
     audio_path: Path,
     model_name: str,
     language: str | None,
-    chunk_size: float | None = None,
+    chunk_size: float,
 ) -> list[dict]:
     from faster_whisper import WhisperModel
 
     model = WhisperModel(model_name, compute_type="int8")
 
-    kwargs = {}
+    kwargs: dict = {"word_timestamps": True}
     if language:
         kwargs["language"] = language
-    if chunk_size is not None:
-        kwargs["word_timestamps"] = True
 
     segments_iter, info = model.transcribe(str(audio_path), **kwargs)
 
@@ -86,13 +84,7 @@ def transcribe(
             progress.update(task, completed=seg.end)
         progress.update(task, completed=info.duration)
 
-    if chunk_size is not None:
-        return merge_words_into_chunks(raw_segments, chunk_size)
-    else:
-        return [
-            {"start": seg.start, "end": seg.end, "text": seg.text.strip()}
-            for seg in raw_segments
-        ]
+    return merge_words_into_chunks(raw_segments, chunk_size)
 
 
 def format_timestamp(seconds: float) -> str:
