@@ -1,6 +1,21 @@
 # vcut
 
-`vcut` is a text-based video editor: Edit video by editing a transcript. This is a sort of trivial, mostly vibe-coded project. It is essentially a thin wrapper around ffmpeg and fastet-whisper. I made yhis for clipping out just the interesting sections of podcasts, long screen shares, etc. -Matt
+`vcut` is a text-based video editor: Edit video by editing a transcript. This is a sort of trivial, mostly vibe-coded project. It is essentially a thin wrapper around ffmpeg and fastet-whisper. I made this for clipping out just the interesting sections of podcasts, long screen shares, etc. 
+
+`vcut` is designed to work well as a tool for AI agents. Here is an example with Claude Code: 
+```
+ ❯ use 'uvx vcut --help' and 'yt-dlp' to download https://www.youtube.com/watch?v=G1xqTjoihfo and create a snippet of the section where
+    theo introduces patch.md
+[...]
+⏺ Clip is ~3:53 long. The snippet is at /tmp/patch-md-intro.mp4 — it covers Theo's full patch.md pitch from his "my proposal..." setup
+  through his wrap-up closing the idea.
+✻ Sautéed for 5m 46s
+```
+(full output in [[examples/clip-a-segment.md](examples/clip-a-segment.md)])
+
+Have fun!
+
+-Matt
 
 ## Overview
 
@@ -13,6 +28,8 @@ vcut render video.mp4           # Step 3: Render video_edited.mp4
 ```
 
 Delete or comment lines with `#` to cut content. 
+
+### Using with agents
 
 ## Installation
 
