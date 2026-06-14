@@ -10,7 +10,7 @@ class TestRender:
         output = tmp_path / "out.mp4"
         segments = [(1.0, 5.0)]
 
-        with patch("vcut.render.subprocess.run") as mock_run:
+        with patch("vcut.ffmpeg.subprocess.run") as mock_run:
             render(input_video, segments, output, tmp_path, reencode=False)
 
         extract_call = mock_run.call_args_list[0]
@@ -26,7 +26,7 @@ class TestRender:
         output = tmp_path / "out.mp4"
         segments = [(1.0, 5.0)]
 
-        with patch("vcut.render.subprocess.run") as mock_run:
+        with patch("vcut.ffmpeg.subprocess.run") as mock_run:
             render(input_video, segments, output, tmp_path, reencode=True)
 
         extract_call = mock_run.call_args_list[0]
@@ -42,7 +42,7 @@ class TestRender:
         output = tmp_path / "out.mp4"
         segments = [(0.0, 2.0), (3.0, 5.0)]
 
-        with patch("vcut.render.subprocess.run"):
+        with patch("vcut.ffmpeg.subprocess.run"):
             render(input_video, segments, output, tmp_path, reencode=False)
 
         concat = tmp_path / "concat.txt"

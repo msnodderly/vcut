@@ -1,20 +1,17 @@
-import subprocess
 from pathlib import Path
 
 from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TimeElapsedColumn
 
+from vcut.ffmpeg import run_ffmpeg
+
 
 def extract_audio(video_path: Path, tmp_dir: Path) -> Path:
     audio_path = tmp_dir / "audio.wav"
-    subprocess.run(
-        [
-            "ffmpeg", "-y", "-i", str(video_path),
-            "-vn", "-acodec", "pcm_s16le", "-ar", "16000", "-ac", "1",
-            str(audio_path),
-        ],
-        capture_output=True,
-        check=True,
-    )
+    run_ffmpeg([
+        "-i", str(video_path),
+        "-vn", "-acodec", "pcm_s16le", "-ar", "16000", "-ac", "1",
+        str(audio_path),
+    ])
     return audio_path
 
 
@@ -43,7 +40,7 @@ def merge_words_into_chunks(segments: list, chunk_size: float) -> list[dict]:
             results.append({
                 "start": chunk_start,
                 "end": w["end"],
-                "text": " ".join(w.strip() for w in chunk_words),
+                "text": " ".join(word.strip() for word in chunk_words),
             })
             chunk_words = []
             chunk_start = None
@@ -52,7 +49,7 @@ def merge_words_into_chunks(segments: list, chunk_size: float) -> list[dict]:
         results.append({
             "start": chunk_start,
             "end": words[-1]["end"],
-            "text": " ".join(w.strip() for w in chunk_words),
+            "text": " ".join(word.strip() for word in chunk_words),
         })
 
     return results
@@ -62,17 +59,15 @@ def transcribe(
     audio_path: Path,
     model_name: str,
     language: str | None,
-    chunk_size: float | None = None,
+    chunk_size: float,
 ) -> list[dict]:
     from faster_whisper import WhisperModel
 
     model = WhisperModel(model_name, compute_type="int8")
 
-    kwargs = {}
+    kwargs: dict = {"word_timestamps": True}
     if language:
         kwargs["language"] = language
-    if chunk_size is not None:
-        kwargs["word_timestamps"] = True
 
     segments_iter, info = model.transcribe(str(audio_path), **kwargs)
 
@@ -89,13 +84,7 @@ def transcribe(
             progress.update(task, completed=seg.end)
         progress.update(task, completed=info.duration)
 
-    if chunk_size is not None:
-        return merge_words_into_chunks(raw_segments, chunk_size)
-    else:
-        return [
-            {"start": seg.start, "end": seg.end, "text": seg.text.strip()}
-            for seg in raw_segments
-        ]
+    return merge_words_into_chunks(raw_segments, chunk_size)
 
 
 def format_timestamp(seconds: float) -> str:

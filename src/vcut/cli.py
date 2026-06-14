@@ -26,6 +26,37 @@ def transcript_path_for(video_path: Path) -> Path:
     return video_path.with_suffix(".txt")
 
 
+def default_output_path(input_path: Path) -> Path:
+    return input_path.with_name(f"{input_path.stem}_edited{input_path.suffix}")
+
+
+def confirm_overwrite(output_path: Path, force: bool) -> None:
+    """Prompt before clobbering an existing output; exit if the user declines."""
+    if output_path.is_file() and not force:
+        answer = console.input(
+            f"[bold yellow]Output already exists:[/] {output_path}\nOverwrite? [y/N] "
+        )
+        if not answer.strip().lower().startswith("y"):
+            console.print("Aborted.")
+            sys.exit(1)
+
+
+def run_render(input_path: Path, segments, output_path: Path, reencode: bool) -> None:
+    """Render segments to output_path, managing the temp dir and ffmpeg errors."""
+    tmp_dir = Path(tempfile.mkdtemp(prefix="vcut_"))
+    try:
+        mode = "re-encode" if reencode else "stream copy"
+        console.print(f"[bold]Rendering {len(segments)} segments ({mode})...[/]")
+        render(input_path, segments, output_path, tmp_dir, reencode)
+        console.print(f"[bold green]Done![/] Output: {output_path}")
+    except Exception as e:
+        console.print(f"[bold red]Error:[/] {e}")
+        console.print(f"Temp files preserved at: {tmp_dir}")
+        sys.exit(1)
+    else:
+        shutil.rmtree(tmp_dir, ignore_errors=True)
+
+
 MODEL_PRESETS = {
     "fast": "tiny.en",
     "balanced": "base.en",
@@ -42,8 +73,6 @@ def cmd_transcribe(args):
         console.print("\nAny faster-whisper model name is also accepted (e.g. large-v3, small.en).")
         sys.exit(0)
     args.model = MODEL_PRESETS.get(args.model, args.model)
-    if args.chunk_size is None:
-        args.chunk_size = 3.0
     input_path = Path(args.input)
     if not input_path.is_file():
         console.print(f"[bold red]Error:[/] File not found: {input_path}")
@@ -71,6 +100,9 @@ def cmd_transcribe(args):
         out_path.write_text(segments_to_text(segments))
         console.print(f"[bold green]Transcript saved:[/] {out_path}")
         console.print(f"[dim]Next: vcut edit {args.input}  (or: vcut render {args.input})[/]")
+    except RuntimeError as e:
+        console.print(f"[bold red]Error:[/] {e}")
+        sys.exit(1)
     finally:
         shutil.rmtree(tmp_dir, ignore_errors=True)
 
@@ -90,12 +122,8 @@ def cmd_render(args):
             console.print(f"[dim]Run first: vcut transcribe {args.input}[/]")
         sys.exit(1)
 
-    output_path = Path(args.output) if args.output else input_path.with_name(f"{input_path.stem}_edited{input_path.suffix}")
-
-    if output_path.is_file() and not args.force:
-        if not console.input(f"[bold yellow]Output already exists:[/] {output_path}\nOverwrite? [y/N] ").strip().lower().startswith("y"):
-            console.print("Aborted.")
-            sys.exit(1)
+    output_path = Path(args.output) if args.output else default_output_path(input_path)
+    confirm_overwrite(output_path, args.force)
 
     try:
         segments = parse_edited_file(transcript_src)
@@ -108,18 +136,7 @@ def cmd_render(args):
         console.print("[yellow]No segments in transcript. Nothing to render.[/]")
         sys.exit(0)
 
-    tmp_dir = Path(tempfile.mkdtemp(prefix="vcut_"))
-    try:
-        mode = "re-encode" if args.reencode else "stream copy"
-        console.print(f"[bold]Rendering {len(segments)} segments ({mode})...[/]")
-        render(input_path, segments, output_path, tmp_dir, args.reencode)
-        console.print(f"[bold green]Done![/] Output: {output_path}")
-    except Exception as e:
-        console.print(f"[bold red]Error:[/] {e}")
-        console.print(f"Temp files preserved at: {tmp_dir}")
-        sys.exit(1)
-    else:
-        shutil.rmtree(tmp_dir, ignore_errors=True)
+    run_render(input_path, segments, output_path, args.reencode)
 
 
 def cmd_edit(args):
@@ -132,7 +149,6 @@ def cmd_edit(args):
     check_ffmpeg()
 
     transcript_src = Path(args.transcript) if args.transcript else transcript_path_for(input_path)
-
     if not transcript_src.is_file():
         console.print(f"[bold red]Error:[/] Transcript not found: {transcript_src}")
         console.print(f"[dim]Run first: vcut transcribe {args.input}[/]")
@@ -143,42 +159,31 @@ def cmd_edit(args):
     working_copy = tmp_dir / "transcript.txt"
     shutil.copy(transcript_src, working_copy)
 
-    try:
-        console.print(f"[bold]Opening editor...[/] ({transcript_src})")
-        rc = open_editor(working_copy)
-        if rc != 0:
-            console.print(f"[bold red]Editor exited with code {rc}. Aborting.[/]")
-            sys.exit(1)
-
-        try:
-            segments = parse_edited_file(working_copy)
-        except ValueError as e:
-            console.print(f"[bold red]Error:[/] {e}")
-            console.print(f"\n[dim]The edited file is preserved at: {working_copy}[/]")
-            console.print(f"[dim]Please fix the issues and copy it back to: {transcript_src}[/]")
-            sys.exit(1)
-
-        if not segments:
-            console.print("[yellow]No segments remaining after edit. Nothing to render.[/]")
-            sys.exit(0)
-
-        output_path = Path(args.output) if args.output else input_path.with_name(f"{input_path.stem}_edited{input_path.suffix}")
-
-        if output_path.is_file() and not args.force:
-            if not console.input(f"[bold yellow]Output already exists:[/] {output_path}\nOverwrite? [y/N] ").strip().lower().startswith("y"):
-                console.print("Aborted.")
-                sys.exit(1)
-
-        mode = "re-encode" if args.reencode else "stream copy"
-        console.print(f"[bold]Rendering {len(segments)} segments ({mode})...[/]")
-        render(input_path, segments, output_path, tmp_dir, args.reencode)
-        console.print(f"[bold green]Done![/] Output: {output_path}")
-    except Exception as e:
-        console.print(f"[bold red]Error:[/] {e}")
-        console.print(f"Temp files preserved at: {tmp_dir}")
-        sys.exit(1)
-    else:
+    console.print(f"[bold]Opening editor...[/] ({transcript_src})")
+    rc = open_editor(working_copy)
+    if rc != 0:
+        console.print(f"[bold red]Editor exited with code {rc}. Aborting.[/]")
         shutil.rmtree(tmp_dir, ignore_errors=True)
+        sys.exit(1)
+
+    try:
+        segments = parse_edited_file(working_copy)
+    except ValueError as e:
+        console.print(f"[bold red]Error:[/] {e}")
+        # Keep the edited file (don't remove tmp_dir) so edits aren't lost.
+        console.print(f"\n[dim]The edited file is preserved at: {working_copy}[/]")
+        console.print(f"[dim]Please fix the issues and copy it back to: {transcript_src}[/]")
+        sys.exit(1)
+
+    if not segments:
+        console.print("[yellow]No segments remaining after edit. Nothing to render.[/]")
+        shutil.rmtree(tmp_dir, ignore_errors=True)
+        sys.exit(0)
+
+    output_path = Path(args.output) if args.output else default_output_path(input_path)
+    confirm_overwrite(output_path, args.force)
+    run_render(input_path, segments, output_path, args.reencode)
+    shutil.rmtree(tmp_dir, ignore_errors=True)
 
 
 def main():
@@ -202,8 +207,9 @@ def main():
              "Pass -m alone to list presets.",
     )
     p_transcribe.add_argument("-l", "--language", default=None, help="Force transcription language")
-    p_transcribe.add_argument("-c", "--chunk-size", type=float, default=None, help="Target segment duration in seconds (default: 3)")
+    p_transcribe.add_argument("-c", "--chunk-size", type=float, default=3.0, help="Target segment duration in seconds (default: 3)")
     p_transcribe.add_argument("--force", action="store_true", help="Overwrite existing transcript")
+    p_transcribe.set_defaults(func=cmd_transcribe)
 
     # -- render --
     p_render = sub.add_parser("render", aliases=["r"], help="Render video from edited transcript")
@@ -212,6 +218,7 @@ def main():
     p_render.add_argument("-o", "--output", help="Output video path (default: {input}_edited.mp4)")
     p_render.add_argument("-r", "--reencode", action="store_true", help="Re-encode for precise cuts")
     p_render.add_argument("--force", action="store_true", help="Overwrite output without prompting")
+    p_render.set_defaults(func=cmd_render)
 
     # -- edit --
     p_edit = sub.add_parser("edit", aliases=["e"], help="Open transcript in $EDITOR, then render (convenience)")
@@ -220,15 +227,12 @@ def main():
     p_edit.add_argument("-o", "--output", help="Output video path (default: {input}_edited.mp4)")
     p_edit.add_argument("-r", "--reencode", action="store_true", help="Re-encode for precise cuts")
     p_edit.add_argument("--force", action="store_true", help="Overwrite output without prompting")
+    p_edit.set_defaults(func=cmd_edit)
 
     args = parser.parse_args()
 
-    if args.command in ("transcribe", "t"):
-        cmd_transcribe(args)
-    elif args.command in ("render", "r"):
-        cmd_render(args)
-    elif args.command in ("edit", "e"):
-        cmd_edit(args)
-    else:
+    if not getattr(args, "func", None):
         parser.print_help()
         sys.exit(1)
+
+    args.func(args)
