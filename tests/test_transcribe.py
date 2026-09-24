@@ -1,6 +1,12 @@
 from types import SimpleNamespace
 
-from vcut.transcribe import format_timestamp, segments_to_text, merge_words_into_chunks
+from vcut.transcribe import (
+    _cached_model_snapshot,
+    _resolve_cached_model_path,
+    format_timestamp,
+    segments_to_text,
+    merge_words_into_chunks,
+)
 
 
 class TestFormatTimestamp:
@@ -36,6 +42,46 @@ class TestSegmentsToText:
         assert len(lines) == 2
         assert lines[0].startswith("[00:00:00.000 -> 00:00:02.500]")
         assert lines[1].startswith("[00:00:02.500 -> 00:00:05.000]")
+
+
+class TestCachedModelResolution:
+    def _make_cached_snapshot(self, cache_dir, repo_id="Systran/faster-whisper-tiny.en"):
+        repo_cache = cache_dir / f"models--{repo_id.replace('/', '--')}"
+        snapshot = repo_cache / "snapshots" / "abc123"
+        snapshot.mkdir(parents=True)
+        (repo_cache / "refs").mkdir()
+        (repo_cache / "refs" / "main").write_text("abc123")
+        for filename in ("config.json", "model.bin", "tokenizer.json"):
+            (snapshot / filename).write_text("x")
+        return snapshot
+
+    def test_resolves_faster_whisper_alias_to_cached_snapshot(self, tmp_path, monkeypatch):
+        cache_dir = tmp_path / "hub"
+        snapshot = self._make_cached_snapshot(cache_dir)
+        monkeypatch.setenv("HF_HUB_CACHE", str(cache_dir))
+
+        assert _resolve_cached_model_path("tiny.en") == str(snapshot)
+
+    def test_resolves_hf_repo_id_to_cached_snapshot(self, tmp_path, monkeypatch):
+        cache_dir = tmp_path / "hub"
+        snapshot = self._make_cached_snapshot(cache_dir)
+        monkeypatch.setenv("HF_HUB_CACHE", str(cache_dir))
+
+        assert _resolve_cached_model_path("Systran/faster-whisper-tiny.en") == str(snapshot)
+
+    def test_keeps_model_name_when_cache_is_missing(self, tmp_path, monkeypatch):
+        monkeypatch.setenv("HF_HUB_CACHE", str(tmp_path / "empty"))
+
+        assert _resolve_cached_model_path("tiny.en") == "tiny.en"
+
+    def test_incomplete_snapshot_is_ignored(self, tmp_path, monkeypatch):
+        cache_dir = tmp_path / "hub"
+        snapshot = self._make_cached_snapshot(cache_dir)
+        (snapshot / "tokenizer.json").unlink()
+        monkeypatch.setenv("HF_HUB_CACHE", str(cache_dir))
+
+        assert _cached_model_snapshot("Systran/faster-whisper-tiny.en") is None
+        assert _resolve_cached_model_path("tiny.en") == "tiny.en"
 
 
 class TestMergeWordsIntoChunks:

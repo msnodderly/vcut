@@ -88,7 +88,8 @@ Agent investigation workflow:
      boundaries around phrases, topics, or repeated words:
        vcut transcribe "input.mp4" -o /tmp/input.vcut.txt -m balanced -l en -c 2 --force
 
-     If the model is not cached, this may download a faster-whisper model.
+     If the model is not cached, this may download a faster-whisper model; add
+     --offline to fail instead of contacting Hugging Face.
      The "balanced" preset is usually enough for locating a clip; use "quality"
      for a more accurate transcript when time is less important.
 
@@ -154,6 +155,7 @@ Output:
 Examples:
   vcut transcribe "input.mp4"
   vcut transcribe "input.mp4" -o /tmp/input.vcut.txt -m balanced -l en -c 2 --force
+  vcut transcribe "input.mp4" --offline       # fail instead of downloading if not cached
   vcut transcribe "input.mp4" -m
 
 Model presets:
@@ -164,7 +166,10 @@ Model presets:
 Agent notes:
   - Use -c 2 or another small chunk size when searching for precise boundaries.
   - Use -l en when the video is English and you want to avoid language detection.
-  - First use of a model may download files through faster-whisper.
+  - When a selected model is already in the Hugging Face cache, vcut loads the
+    cached snapshot directly and avoids Hugging Face Hub resolution requests.
+  - First use of a model may download files through faster-whisper. Use
+    --offline to fail instead of contacting Hugging Face.
 """
 
 
@@ -248,7 +253,13 @@ def cmd_transcribe(args):
         console.print("[bold]Extracting audio...[/]")
         audio_path = extract_audio(input_path, tmp_dir)
 
-        segments = transcribe(audio_path, args.model, args.language, args.chunk_size)
+        segments = transcribe(
+            audio_path,
+            args.model,
+            args.language,
+            args.chunk_size,
+            local_files_only=args.offline,
+        )
         if not segments:
             console.print("[bold red]Error:[/] No speech detected in the video.")
             sys.exit(1)
@@ -372,6 +383,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p_transcribe.add_argument("-l", "--language", default=None, help="Force transcription language")
     p_transcribe.add_argument("-c", "--chunk-size", type=float, default=3.0, help="Target segment duration in seconds (default: 3)")
+    p_transcribe.add_argument(
+        "--offline",
+        action="store_true",
+        help="Use only local/cached model files; never contact Hugging Face",
+    )
     p_transcribe.add_argument("--force", action="store_true", help="Overwrite existing transcript")
     p_transcribe.set_defaults(func=cmd_transcribe)
 

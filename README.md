@@ -70,7 +70,15 @@ pip install -e .
 
 ### Whisper Models
 
-The `faster-whisper` package installs via pip automatically. On first run, the selected Whisper model downloads (~150MB-1.5GB) and caches to `~/.cache/huggingface/`.
+The `faster-whisper` package installs via pip automatically. On first run, the selected Whisper model downloads (~150MB-1.5GB) and caches to `~/.cache/huggingface/`. On later runs, `vcut` prefers an already-cached Hugging Face snapshot path, which avoids unnecessary Hub resolution requests.
+
+To force cache-only/offline model loading:
+
+```bash
+vcut transcribe video.mp4 --offline
+```
+
+If a cached model is not found, `--offline` fails instead of contacting Hugging Face.
 
 ## Usage
 
@@ -88,6 +96,7 @@ pattern that matches the user's request.
 vcut transcribe video.mp4                # → video.txt
 vcut transcribe video.mp4 -o out.txt     # custom output path
 vcut transcribe video.mp4 --model large-v3 --language en
+vcut transcribe video.mp4 --offline      # use cached model files only
 vcut transcribe video.mp4 --force        # overwrite existing
 ```
 
@@ -97,6 +106,7 @@ vcut transcribe video.mp4 --force        # overwrite existing
 | `--model` | `-m` | `distil-large-v3` | Whisper model preset or name (see below). Pass `-m` alone to list presets |
 | `--language` | `-l` | auto-detect | Force language |
 | `--chunk-size` | `-c` | `3` | Target segment duration in seconds; smaller = finer boundaries |
+| `--offline` | | `false` | Use only local/cached model files; never contact Hugging Face |
 | `--force` | | `false` | Overwrite existing transcript |
 
 Model presets: `fast` (tiny.en), `balanced` (base.en), `quality` (distil-large-v3, the default). Any `faster-whisper` model name (e.g. `large-v3`, `small.en`) is also accepted.
@@ -202,6 +212,8 @@ vcut render video.mp4 -t clean.txt -o clean-version.mp4
 **ffmpeg not found** — Install it: `brew install ffmpeg` (macOS) or `sudo apt install ffmpeg` (Ubuntu).
 
 **Model download is slow** — First run downloads the Whisper model (~1.5GB). Set `HF_TOKEN` for faster downloads.
+
+**Avoid Hugging Face checks** — Reuse the same cache between runs (for example `HF_HOME=$HOME/.cache/huggingface`) and use `--offline` when you want vcut to fail rather than contact Hugging Face if the model is not cached.
 
 **Transcript already exists** — Use `--force` to overwrite, or just edit the existing file.
 

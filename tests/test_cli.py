@@ -26,6 +26,13 @@ class TestModelPresets:
         assert MODEL_PRESETS["quality"] == "distil-large-v3"
 
 
+class TestTranscribeParser:
+    def test_offline_flag(self):
+        args = build_parser().parse_args(["transcribe", "video.mp4", "--offline"])
+
+        assert args.offline is True
+
+
 class TestHelpText:
     def test_top_level_help_includes_agent_workflows(self):
         help_text = build_parser().format_help()
@@ -42,7 +49,7 @@ class TestHelpText:
     @pytest.mark.parametrize(
         ("command", "expected"),
         [
-            ("transcribe", ["Purpose:", "Model presets:", "vcut transcribe \"input.mp4\""]),
+            ("transcribe", ["Purpose:", "Model presets:", "vcut transcribe \"input.mp4\"", "--offline"]),
             ("render", ["Purpose:", "Editing patterns:", "Contiguous clip:", "Supercut:"]),
             ("edit", ["Purpose:", "EDITOR=vim", "Prefer non-interactive"]),
         ],
